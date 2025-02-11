@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>supabase</title>
+  </head>
+  <body>
+    <section>
+      <form id="controller">
+        <input type="text" name="content" />
+        <button>Add Content</button>
+      </form>
+      <section>
+        <form id="file">
+          <input type="file" id="fileInput" />
+          <button>Add File</button>
+        </form>
+      </section>
+      <section id="container"></section>
+    </section>
+    <script>
+      const supabaseAnonKey =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sZmd4anpubXZ3cW5kcXN5b2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkyMzM1MjUsImV4cCI6MjA1NDgwOTUyNX0.tNerlj8Z5zRrHkhnt0O1ido-U6q-VlojGc6jvuc5h1I";
+      const supabaseUrl = "https://nlfgxjznmvwqndqsyoku.supabase.co";
+      const tableName = "TEST_TABLE1";
+      const form = document.querySelector("#controller");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        // 한번 form 관련된 걸 다 밀어버려서...
+        // prevent default 때문에... 여기서 실행해줘야함...
+        const formData = new FormData(form);
+
+        console.log(formData.get("content"));
+        // 401 권한 부족 이슈
+        // RLS을 풀면 ... -> RLS를 풀면 다 풀리는듯;;;
+
+        //form데이터 입력
+        const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
+          method: "POST",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({
+            content: formData.get("content"),
+          }),
+        });
+        console.log(await response.json());
+
+        //테이블 데이터 가져오기
+        const response2 = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
+          method: "GET",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const data = await response2.json();
+        console.log(data);
+
+        document.querySelector("#container").textContent = JSON.stringify(data);
+      });
+
+      const bucketName = "test-bucket";
+
+      const form2 = document.querySelector("#file");
+      form2.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const { files } = document.querySelector("#fileInput");
+        const file = files[0];
+        console.log(file);
+        const folderName = "uploads";
+        const fileName = `${Date.now()}_${file.name}`; // 안겹치려고 // uuid.
+        const filePath = `${folderName}/${fileName}`;
+        const response = await fetch(
+          `${supabaseUrl}/storage/v1/object/${bucketName}/${filePath}`,
+          {
+            method: "put",
+            headers: {
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${supabaseAnonKey}`,
+              "Content-Type": file.type,
+            },
+            body: file,
+          }
+        );
+        console.log(await response.json());
+      });
+    </script>
+  </body>
+</html>
